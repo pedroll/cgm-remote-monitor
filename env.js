@@ -21,11 +21,21 @@ function config ( ) {
    * See README.md for info about all the supported ENV VARs
    */
   env.DISPLAY_UNITS = readENV('DISPLAY_UNITS', 'mg/dl');
+
+  // be lenient at accepting the mmol input
+  if (env.DISPLAY_UNITS.toLowerCase().includes('mmol')) {
+    env.DISPLAY_UNITS = 'mmol';
+  } else {
+    // also ensure the mg/dl is set with expected case
+    env.DISPLAY_UNITS = 'mg/dl';
+  }
+
+  console.log('Units set to', env.DISPLAY_UNITS );
+
   env.PORT = readENV('PORT', 1337);
   env.HOSTNAME = readENV('HOSTNAME', null);
   env.IMPORT_CONFIG = readENV('IMPORT_CONFIG', null);
   env.static_files = readENV('NIGHTSCOUT_STATIC_FILES', __dirname + '/static/');
-  env.swagger_files = readENV('NIGHTSCOUT_SWAGGER_FILES',  __dirname + '/node_modules/swagger-ui-dist/');
   env.debug = {
     minify: readENVTruthy('DEBUG_MINIFY', true)
   };
@@ -56,6 +66,13 @@ function setSSL() {
       env.ca = fs.readFileSync(env.SSL_CA);
     }
   }
+
+  env.insecureUseHttp = readENVTruthy("INSECURE_USE_HTTP", false);
+  env.secureHstsHeader = readENVTruthy("SECURE_HSTS_HEADER", true);
+  env.secureHstsHeaderIncludeSubdomains = readENVTruthy("SECURE_HSTS_HEADER_INCLUDESUBDOMAINS", false);
+  env.secureHstsHeaderPreload= readENVTruthy("SECURE_HSTS_HEADER_PRELOAD", false);
+  env.secureCsp = readENVTruthy("SECURE_CSP", false);
+  env.secureCspReportOnly = readENVTruthy("SECURE_CSP_REPORT_ONLY", false);
 }
 
 // A little ugly, but we don't want to read the secret into a var
@@ -145,7 +162,8 @@ function readENV(varName, defaultValue) {
 function readENVTruthy(varName, defaultValue) {
   var value = readENV(varName, defaultValue);
   if (typeof value === 'string' && (value.toLowerCase() === 'on' || value.toLowerCase() === 'true')) { value = true; }
-  if (typeof value === 'string' && (value.toLowerCase() === 'off' || value.toLowerCase() === 'false')) { value = false; }
+  else if (typeof value === 'string' && (value.toLowerCase() === 'off' || value.toLowerCase() === 'false')) { value = false; }
+  else { value=defaultValue }
   return value;
 }
 
@@ -179,6 +197,6 @@ function findExtendedSettings (envs) {
     }
   });
   return extended;
-}
+  }
 
 module.exports = config;
